@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.UUID;
 
 import net.minecraft.block.BlockEndPortalFrame;
+import net.minecraft.block.BlockPortal;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -27,6 +29,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.gen.structure.StructureStrongholdPieces.PortalRoom;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
 import zdoctor.lazymodder.easy.items.EasyItem;
 import zdoctor.testmod.SilentTeleport;
 
@@ -50,28 +53,51 @@ public class ZItems {
 					stackNBT.setString("uuid", playerIn.getUniqueID().toString());
 
 				} else {
-					if (stackNBT.hasKey("playerTag")) {
-						int lastDimension = playerIn.dimension;
-						int dimensionIn = stackNBT.getCompoundTag("playerTag").getInteger("Dimension");
+					if (!playerIn.isDead) {
+						if (stackNBT.hasKey("playerTag")) {
+							int currentDimension = playerIn.dimension;
+							int dimensionIn = stackNBT.getCompoundTag("playerTag").getInteger("Dimension");
 
-						if (playerIn.dimension != dimensionIn) {
-							if (!worldIn.isRemote && !playerIn.isDead) {
-								EntityPlayerMP playerMP = (EntityPlayerMP) playerIn;
+							NBTTagCompound tempNBT = stackNBT.copy();
+							tempNBT.getCompoundTag("playerTag").setInteger("Dimension", currentDimension);
+
+							if (currentDimension != dimensionIn) {
+								// Loads the player with the data
+								playerIn.readFromNBT(tempNBT.getCompoundTag("playerTag"));
+								// Loads the previous data to the new item
+								stack = playerIn.getHeldItem(handIn);
+								stack.setTagCompound(stackNBT);
+
+								if (!worldIn.isRemote) {
+									EntityPlayerMP playerMP = (EntityPlayerMP) playerIn;
+
+									SilentTeleport teleporter = new SilentTeleport(
+											playerMP.getServer().getWorld(dimensionIn)) {
+										@Override
+										public boolean placeInExistingPortal(Entity entityIn, float rotationYaw) {
+											super.placeInExistingPortal(entityIn, rotationYaw);
+											// Loads the player with the data
+											playerIn.readFromNBT(stackNBT.getCompoundTag("playerTag"));
+											// Loads the previous data to the
+											// new item
+											ItemStack stack = playerIn.getHeldItem(handIn);
+											stack.setTagCompound(stackNBT);
+											return false;
+										}
+									};
+
+									playerMP.getServer().getPlayerList().transferPlayerToDimension(playerMP,
+											dimensionIn, teleporter);
+
+								}
+
+							} else {
 								// Loads the player with the data
 								playerIn.readFromNBT(stackNBT.getCompoundTag("playerTag"));
 								// Loads the previous data to the new item
 								stack = playerIn.getHeldItem(handIn);
 								stack.setTagCompound(stackNBT);
-
-								playerMP.getServer().getPlayerList().transferPlayerToDimension(playerMP, dimensionIn,
-										new SilentTeleport(playerMP.getServer().getWorld(dimensionIn)));
 							}
-						} else {
-							// Loads the player with the data
-							playerIn.readFromNBT(stackNBT.getCompoundTag("playerTag"));
-							// Loads the previous data to the new item
-							stack = playerIn.getHeldItem(handIn);
-							stack.setTagCompound(stackNBT);
 						}
 					}
 				}
