@@ -88,7 +88,6 @@ public class ZItems {
 
 									playerMP.getServer().getPlayerList().transferPlayerToDimension(playerMP,
 											dimensionIn, teleporter);
-
 								}
 
 							} else {
