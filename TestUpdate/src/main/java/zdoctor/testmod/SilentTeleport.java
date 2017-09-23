@@ -19,10 +19,6 @@ public class SilentTeleport extends Teleporter {
 		super(worldIn);
 	}
 
-	public void silentTransferToDimension(Entity entityIn) {
-
-	}
-
 	@Override
 	public boolean placeInExistingPortal(Entity entityIn, float rotationYaw) {
 		System.out.println("teleporting silently");
