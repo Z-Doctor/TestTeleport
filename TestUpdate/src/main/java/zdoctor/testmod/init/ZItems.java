@@ -1,35 +1,24 @@
 package zdoctor.testmod.init;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
 
-import net.minecraft.block.BlockEndPortalFrame;
-import net.minecraft.block.BlockPortal;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.integrated.IntegratedServer;
-import net.minecraft.server.management.PlayerList;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.Teleporter;
+import net.minecraft.world.BossInfoServer;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
-import net.minecraft.world.gen.structure.StructureStrongholdPieces.PortalRoom;
-import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
+import net.minecraft.world.WorldProviderEnd;
+import net.minecraft.world.end.DragonFightManager;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 import zdoctor.lazymodder.easy.items.EasyItem;
 import zdoctor.testmod.SilentTeleport;
 
@@ -57,39 +46,26 @@ public class ZItems {
 						if (stackNBT.hasKey("playerTag")) {
 							int currentDimension = playerIn.dimension;
 							int dimensionIn = stackNBT.getCompoundTag("playerTag").getInteger("Dimension");
-
-							NBTTagCompound tempNBT = stackNBT.copy();
-							tempNBT.getCompoundTag("playerTag").setInteger("Dimension", currentDimension);
-
 							if (currentDimension != dimensionIn) {
-								// Loads the player with the data
-								playerIn.readFromNBT(tempNBT.getCompoundTag("playerTag"));
-								// Loads the previous data to the new item
-								stack = playerIn.getHeldItem(handIn);
-								stack.setTagCompound(stackNBT);
-
 								if (!worldIn.isRemote) {
 									EntityPlayerMP playerMP = (EntityPlayerMP) playerIn;
 
-									SilentTeleport teleporter = new SilentTeleport(
-											playerMP.getServer().getWorld(dimensionIn)) {
+									SilentTeleport teleporter;
+
+									teleporter = new SilentTeleport(playerMP.getServer().getWorld(dimensionIn)) {
 										@Override
 										public boolean placeInExistingPortal(Entity entityIn, float rotationYaw) {
 											super.placeInExistingPortal(entityIn, rotationYaw);
-											// Loads the player with the data
 											playerIn.readFromNBT(stackNBT.getCompoundTag("playerTag"));
-											// Loads the previous data to the
-											// new item
 											ItemStack stack = playerIn.getHeldItem(handIn);
 											stack.setTagCompound(stackNBT);
+											System.out.println("Teleporitng");
 											return false;
 										}
 									};
 
-									playerMP.getServer().getPlayerList().transferPlayerToDimension(playerMP,
-											dimensionIn, teleporter);
+									teleporter.transferPlayerToDimension(playerMP, dimensionIn);
 								}
-
 							} else {
 								// Loads the player with the data
 								playerIn.readFromNBT(stackNBT.getCompoundTag("playerTag"));
@@ -97,6 +73,7 @@ public class ZItems {
 								stack = playerIn.getHeldItem(handIn);
 								stack.setTagCompound(stackNBT);
 							}
+
 						}
 					}
 				}
